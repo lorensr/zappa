@@ -59,9 +59,9 @@ select = (names, scopes) ->
   _.union (names[i] for i in scopes.split ' + ')
 
 tempfile_regexes = [
-  /*~/
-  /*.swp/
-  /.DS_Store/
+  /~$/
+  /\.swp$/
+  /\.DS_Store$/
 ]
 
 is_tempfile = (name) ->
@@ -317,7 +317,7 @@ zappa.app = ->
     fs.stat name, (err, stats) ->
       if stats?.isDirectory()
         for file in fs.readdirSync(name) when not is_tempfile file
-          root_locals.include_file name + '/' + file
+          root_locals.include name + '/' + file
       else
         root_locals.include_file name
 
