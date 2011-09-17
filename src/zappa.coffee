@@ -58,6 +58,16 @@ minify = (js) ->
 select = (names, scopes) ->
   _.union (names[i] for i in scopes.split ' + ')
 
+tempfile_regexes = [
+  /*~/
+  /*.swp/
+  /.DS_Store/
+]
+
+is_tempfile = (name) ->
+  _.any tempfile_regexes, (regex) ->
+    name.match regex
+
 # The stringified zappa client.
 client = require('./client').build(zappa.version, coffeescript_helpers, rewrite_function)
 
@@ -284,7 +294,7 @@ zappa.app = ->
       rewritten_shared = rewrite_function(v, select names, 'globals + root + externals')
       rewritten_shared(root_context, root_locals)
 
-  root_locals.include = (name) ->
+  root_locals.include_file = (name) ->
     sub = root_locals.require name
     rewritten_sub = rewrite_function(sub.include, select names, 'globals + root + externals')
 
@@ -302,6 +312,14 @@ zappa.app = ->
     # include_locals.require = ???
 
     rewritten_sub(root_context, include_locals)
+
+  root_locals.include = (name) ->
+    fs.stat name, (err, stats) ->
+      if stats?.isDirectory()
+        for file in fs.readdirSync(name) when not is_tempfile file
+          root_locals.include_file name + '/' + file
+      else
+        root_locals.include_file name
 
   # Variables passed through the object parameter.
   root_locals[k] = v for k, v of externals
